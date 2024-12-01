@@ -2,7 +2,7 @@ import axios from 'axios'
 import appConfig from '@/config'
 
 const AxiosBase = axios.create({
-    timeout: 60000,
+    timeout: 300000,
     baseURL: appConfig.apiPrefix,
 })
 

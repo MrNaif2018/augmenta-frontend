@@ -2,91 +2,119 @@ import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getSummary } from './services/SummaryService'
-import { Loader2 } from "lucide-react"
+import { getSummary, getSummaryResult } from './services/SummaryService'
+import { Loader2 } from 'lucide-react'
 
+type GetCompanyQuery = {
+    value: string
+    type: 'company' | 'result'
+}
 
-const fetchCompanyData = async (companyName: string) => {
-    return await getSummary(companyName)
+const fetchCompanyData = async (query: GetCompanyQuery) => {
+    if (query.type === 'result') {
+        return await getSummaryResult(query.value)
+    }
+    return await getSummary(query.value)
 }
 
 const useTypingEffect = (text: string, speed: number = 70) => {
-  const [displayText, setDisplayText] = useState('');
+    const [displayText, setDisplayText] = useState('')
 
-  useEffect(() => {
-    let i = 0;
-    const typingInterval = setInterval(() => {
-      if (i < text.length) {
-        setDisplayText(text.substring(0, i + 1))
-        i++;
-      } else {
-        clearInterval(typingInterval);
-      }
-    }, speed);
+    useEffect(() => {
+        let i = 0
+        const typingInterval = setInterval(() => {
+            if (i < text.length) {
+                setDisplayText(text.substring(0, i + 1))
+                i++
+            } else {
+                clearInterval(typingInterval)
+            }
+        }, speed)
 
-    return () => {
-      clearInterval(typingInterval);
-    };
-  }, [text, speed]);
+        return () => {
+            clearInterval(typingInterval)
+        }
+    }, [text, speed])
 
-  return displayText;
+    return displayText
 }
 
 const renderFAQSection = (faqs) => {
-  if (!faqs || faqs.length === 0) return null
+    if (!faqs || faqs.length === 0) return null
 
-  const fundingTotal = faqs.find(faq => faq.funding_total)?.funding_total
-  const lastFunding = faqs.find(faq => faq.last_funding_at)
-  const numInvestors = faqs.find(faq => faq.num_investors)?.num_investors
-  const noFAQ = !fundingTotal && !lastFunding && !numInvestors
-  if (noFAQ) return null
+    const fundingTotal = faqs.find((faq) => faq.funding_total)?.funding_total
+    const lastFunding = faqs.find((faq) => faq.last_funding_at)
+    const numInvestors = faqs.find((faq) => faq.num_investors)?.num_investors
+    const noFAQ = !fundingTotal && !lastFunding && !numInvestors
+    if (noFAQ) return null
 
-  return (
-    <div className="mb-6">
-      <h3 className="text-xl font-semibold mb-2">Company Facts</h3>
-      <div className="grid grid-cols-2 gap-4">
-        {fundingTotal && (
-          <div>
-            <strong>Total Funding:</strong> {new Intl.NumberFormat('en-US', { style: 'currency', currency: fundingTotal.currency }).format(fundingTotal.value)}
-          </div>
-        )}
-        {lastFunding && (
-          <>
-            <div>
-              <strong>Last Funding Date:</strong> {new Date(lastFunding.last_funding_at).toLocaleDateString()}
+    return (
+        <div className="mb-6">
+            <h3 className="text-xl font-semibold mb-2">Company Facts</h3>
+            <div className="grid grid-cols-2 gap-4">
+                {fundingTotal && (
+                    <div>
+                        <strong>Total Funding:</strong>{' '}
+                        {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: fundingTotal.currency,
+                        }).format(fundingTotal.value)}
+                    </div>
+                )}
+                {lastFunding && (
+                    <>
+                        <div>
+                            <strong>Last Funding Date:</strong>{' '}
+                            {new Date(
+                                lastFunding.last_funding_at,
+                            ).toLocaleDateString()}
+                        </div>
+                        <div>
+                            <strong>Last Funding Type:</strong>{' '}
+                            {lastFunding.last_funding_type.replace(/_/g, ' ')}
+                        </div>
+                        <div>
+                            <strong>Number of Funding Rounds:</strong>{' '}
+                            {lastFunding.num_funding_rounds}
+                        </div>
+                    </>
+                )}
+                {numInvestors && (
+                    <div>
+                        <strong>Number of Investors:</strong> {numInvestors}
+                    </div>
+                )}
             </div>
-            <div>
-              <strong>Last Funding Type:</strong> {lastFunding.last_funding_type.replace(/_/g, ' ')}
-            </div>
-            <div>
-              <strong>Number of Funding Rounds:</strong> {lastFunding.num_funding_rounds}
-            </div>
-          </>
-        )}
-        {numInvestors && (
-          <div>
-            <strong>Number of Investors:</strong> {numInvestors}
-          </div>
-        )}
-      </div>
-    </div>
-  )
+        </div>
+    )
 }
 
 export default function AugmentaApp() {
-    const [companyName, setCompanyName] = useState('')
     const [companyData, setCompanyData] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [searchInput, setSearchInput] = useState('')
+    const [isResultSearch, setIsResultSearch] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        const data = await fetchCompanyData(companyName)
+        const data = await fetchCompanyData({
+            value: searchInput,
+            type: isResultSearch ? 'result' : 'company',
+        })
         setCompanyData(data)
         setLoading(false)
     }
 
-    const animatedText = useTypingEffect("Discover AI-powered insights about companies. Enter a company name to get started.", 50)
+    const toggleSearchType = () => {
+        setIsResultSearch(!isResultSearch)
+        setSearchInput('')
+    }
+
+    const animatedText = useTypingEffect(
+        'Discover AI-powered insights about companies. Enter a company name to get started.',
+        50,
+    )
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white p-8">
@@ -94,23 +122,43 @@ export default function AugmentaApp() {
                 <h1 className="text-4xl font-bold text-center mb-8">
                     Augmenta
                 </h1>
-                <p className="text-xl text-center mb-8">
-                    {animatedText}
-                </p>
-                <form className="flex gap-4 mb-8" onSubmit={handleSubmit}>
-                    <Input
-                        type="text"
-                        placeholder="Enter company name"
-                        value={companyName}
-                        className="flex-grow"
-                        onChange={(e) => setCompanyName(e.target.value)}
-                    />
-                    <Button type="submit" disabled={loading}>
-                        {loading ? <>
-                          <Loader2 className="animate-spin" />
-                          Loading...
-                        </> : 'Search'}
-                    </Button>
+                <p className="text-xl text-center mb-8">{animatedText}</p>
+                <form
+                    className="flex flex-col items-center gap-4 mb-8"
+                    onSubmit={handleSubmit}
+                >
+                    <div className="w-full flex gap-4">
+                        <Input
+                            type="text"
+                            placeholder={
+                                isResultSearch
+                                    ? 'Enter result ID'
+                                    : 'Enter company name'
+                            }
+                            className="flex-grow"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                        />
+                        <Button type="submit" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <Loader2 className="animate-spin" />
+                                    Loading...
+                                </>
+                            ) : (
+                                'Search'
+                            )}
+                        </Button>
+                    </div>
+                    <button
+                        type="button"
+                        className="text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none"
+                        onClick={toggleSearchType}
+                    >
+                        {isResultSearch
+                            ? 'Or search for a company'
+                            : 'Or search for existing result'}
+                    </button>
                 </form>
 
                 {companyData && (
