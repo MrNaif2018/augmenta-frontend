@@ -14,9 +14,11 @@ type SummaryResult = {
     data: Record<string, any>
 }
 
-export async function getSummaryResult(id: string) {
+export async function getSummaryResult(name: string) {
     return ApiService.fetchDataWithAxios<SummaryResult>({
-        url: `/requests/${id}`,
+        url: `/requests/search/${name}`,
         method: 'GET',
-    }).then((res) => res.data)
+    })
+        .then((res) => res.data)
+        .catch(() => null)
 }
