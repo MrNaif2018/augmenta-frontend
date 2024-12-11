@@ -127,31 +127,49 @@ export default function MainPage() {
                                             <h3 className="font-semibold mb-2">
                                                 Recent Requests
                                             </h3>
-                                            {requestHistory.length > 0 ? (
-                                                <ul className="space-y-2">
-                                                    {requestHistory
-                                                        .slice(-5)
-                                                        .reverse()
-                                                        .map((request) => (
-                                                            <Link
-                                                                key={request.id}
-                                                                to={`/requests/${request.id}`}
-                                                            >
-                                                                <li className="text-sm text-blue-600 hover:underline">
-                                                                    {
-                                                                        request
-                                                                            .data
-                                                                            .name
+                                            <div className="max-h-96 overflow-y-auto">
+                                                {requestHistory.length > 0 ? (
+                                                    <ul className="space-y-4">
+                                                        {requestHistory.map(
+                                                            (request) => (
+                                                                <li
+                                                                    key={
+                                                                        request.id
                                                                     }
+                                                                    className="text-sm border-b pb-2"
+                                                                >
+                                                                    <Link
+                                                                        to={`/requests/${request.id}`}
+                                                                        className="font-medium text-blue-600 hover:underline"
+                                                                    >
+                                                                        {
+                                                                            request
+                                                                                .data
+                                                                                .name
+                                                                        }
+                                                                    </Link>
+                                                                    <div className="text-gray-500">
+                                                                        {new Date(
+                                                                            request.created,
+                                                                        ).toLocaleString()}
+                                                                    </div>
+                                                                    <div className="text-gray-700">
+                                                                        {
+                                                                            request
+                                                                                .data
+                                                                                .description
+                                                                        }
+                                                                    </div>
                                                                 </li>
-                                                            </Link>
-                                                        ))}
-                                                </ul>
-                                            ) : (
-                                                <p className="text-sm text-gray-500">
-                                                    No recent requests
-                                                </p>
-                                            )}
+                                                            ),
+                                                        )}
+                                                    </ul>
+                                                ) : (
+                                                    <p className="text-sm text-gray-500">
+                                                        No recent requests
+                                                    </p>
+                                                )}
+                                            </div>
                                         </PopoverContent>
                                     </Popover>
                                     <Button onClick={handleLogout}>
