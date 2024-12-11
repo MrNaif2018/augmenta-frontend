@@ -12,15 +12,21 @@ export async function logIn(email: string, password: string) {
     })
 }
 
-export async function signUp(email: string, password: string) {
+export async function signUp(name: string, email: string, password: string) {
     return ApiService.fetchDataWithAxios({
         url: '/users',
         method: 'POST',
         data: {
+            name,
             email,
             password,
         },
     })
-        .then((res) => res.data)
-        .catch(() => null)
+}
+
+export async function getHistory() {
+    return ApiService.fetchDataWithAxios({
+        url: '/requests/list',
+        method: 'GET',
+    })
 }

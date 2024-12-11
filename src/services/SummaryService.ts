@@ -22,3 +22,10 @@ export async function getSummaryResult(name: string) {
         .then((res) => res.data)
         .catch(() => null)
 }
+
+export async function getRequestByID(id: string) {
+    return ApiService.fetchDataWithAxios<SummaryResult>({
+        url: `/requests/${id}`,
+        method: 'GET',
+    })
+}

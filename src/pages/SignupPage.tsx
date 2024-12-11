@@ -2,24 +2,38 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { signUp } from '@/services/AuthService'
 
 export default function SignUpPage() {
     const [email, setEmail] = useState('')
+    const [name, setName] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [loading, setLoading] = useState(false)
+    const [errors, setErrors] = useState<string[]>([])
+    const navigate = useNavigate()
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        // Here you would typically handle the sign-up logic
-        console.log('Sign up attempt with:', {
-            email,
-            password,
-            confirmPassword,
-        })
+        signUp(name, email, password)
+            .then((resp: any) => {
+                setLoading(false)
+                localStorage.setItem('token', resp.token)
+                navigate('/')
+            })
+            .catch((err) => {
+                const detail = err?.response?.data?.detail
+                if (typeof detail === 'string') {
+                    setErrors([detail])
+                } else {
+                    setErrors(detail?.map((error: any) => error?.msg))
+                }
+                setLoading(false)
+            })
     }
 
     return (
@@ -31,6 +45,17 @@ export default function SignUpPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {errors.length > 0 && (
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertDescription>
+                                <ul className="list-disc pl-4">
+                                    {errors.map((error, index) => (
+                                        <li key={index}>{error}</li>
+                                    ))}
+                                </ul>
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <form className="space-y-4" onSubmit={handleSubmit}>
                         <div className="space-y-2">
                             <label
@@ -46,6 +71,21 @@ export default function SignUpPage() {
                                 placeholder="Enter your email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label
+                                htmlFor="name"
+                                className="text-sm font-medium"
+                            >
+                                Name
+                            </label>
+                            <Input
+                                required
+                                id="name"
+                                placeholder="Enter your name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">

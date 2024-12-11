@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getSummary, getSummaryResult } from '@/services/SummaryService'
 import { Loader2 } from 'lucide-react'
 import { ToastProvider, useToast } from '@/hooks/useToast'
-import { IfRender } from '@/components/IfRender'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover'
+
+import { useNavigate, Link } from 'react-router'
+import { getHistory } from '@/services/AuthService'
+import CompanyData from '@/components/CompanyData'
 
 type GetCompanyQuery = {
     value: string
@@ -41,62 +48,22 @@ const useTypingEffect = (text: string, speed: number = 70) => {
     return displayText
 }
 
-const renderFAQSection = (faqs) => {
-    if (!faqs || faqs.length === 0) return null
-
-    const fundingTotal = faqs.find((faq) => faq.funding_total)?.funding_total
-    const lastFunding = faqs.find((faq) => faq.last_funding_at)
-    const numInvestors = faqs.find((faq) => faq.num_investors)?.num_investors
-    const noFAQ = !fundingTotal && !lastFunding && !numInvestors
-    if (noFAQ) return null
-
-    return (
-        <div className="mb-6">
-            <h3 className="text-xl font-semibold mb-2">Company Facts</h3>
-            <div className="grid grid-cols-2 gap-4">
-                {fundingTotal && (
-                    <div>
-                        <strong>Total Funding:</strong>{' '}
-                        {new Intl.NumberFormat('en-US', {
-                            style: 'currency',
-                            currency: fundingTotal.currency,
-                        }).format(fundingTotal.value)}
-                    </div>
-                )}
-                {lastFunding && (
-                    <>
-                        <div>
-                            <strong>Last Funding Date:</strong>{' '}
-                            {new Date(
-                                lastFunding.last_funding_at,
-                            ).toLocaleDateString()}
-                        </div>
-                        <div>
-                            <strong>Last Funding Type:</strong>{' '}
-                            {lastFunding.last_funding_type.replace(/_/g, ' ')}
-                        </div>
-                        <div>
-                            <strong>Number of Funding Rounds:</strong>{' '}
-                            {lastFunding.num_funding_rounds}
-                        </div>
-                    </>
-                )}
-                {numInvestors && (
-                    <div>
-                        <strong>Number of Investors:</strong> {numInvestors}
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-}
-
 export default function MainPage() {
     const [companyData, setCompanyData] = useState(null)
     const [loading, setLoading] = useState(false)
     const [searchInput, setSearchInput] = useState('')
     const [isResultSearch, setIsResultSearch] = useState(false)
+    const [requestHistory, setRequestHistory] = useState([])
     const { toast } = useToast()
+    const navigate = useNavigate()
+
+    const isLoggedIn = localStorage.getItem('token') ? true : false
+
+    useEffect(() => {
+        getHistory().then((data) => {
+            setRequestHistory(data)
+        })
+    }, [isLoggedIn, companyData])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -119,6 +86,15 @@ export default function MainPage() {
         setLoading(false)
     }
 
+    const handleLogout = () => {
+        localStorage.removeItem('token')
+        toast({
+            title: 'Logged out successfully',
+            description: 'Come back soon!',
+            duration: 3000,
+        })
+    }
+
     const toggleSearchType = () => {
         setIsResultSearch(!isResultSearch)
         setSearchInput('')
@@ -132,10 +108,71 @@ export default function MainPage() {
     return (
         <ToastProvider>
             <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white p-8">
-                <div className="max-w-4xl mx-auto">
-                    <h1 className="text-4xl font-bold text-center mb-8">
-                        Augmenta
-                    </h1>
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex justify-between items-center mb-8 max-w-7xl mx-auto w-full">
+                        <div className="w-1/3"></div>
+                        <h1 className="text-4xl font-bold text-center w-1/3">
+                            Augmenta
+                        </h1>
+                        <div className="w-1/3 flex justify-end">
+                            {isLoggedIn ? (
+                                <div className="flex items-center gap-4">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline">
+                                                Request History
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80">
+                                            <h3 className="font-semibold mb-2">
+                                                Recent Requests
+                                            </h3>
+                                            {requestHistory.length > 0 ? (
+                                                <ul className="space-y-2">
+                                                    {requestHistory
+                                                        .slice(-5)
+                                                        .reverse()
+                                                        .map((request) => (
+                                                            <Link
+                                                                key={request.id}
+                                                                to={`/requests/${request.id}`}
+                                                            >
+                                                                <li className="text-sm text-blue-600 hover:underline">
+                                                                    {
+                                                                        request
+                                                                            .data
+                                                                            .name
+                                                                    }
+                                                                </li>
+                                                            </Link>
+                                                        ))}
+                                                </ul>
+                                            ) : (
+                                                <p className="text-sm text-gray-500">
+                                                    No recent requests
+                                                </p>
+                                            )}
+                                        </PopoverContent>
+                                    </Popover>
+                                    <Button onClick={handleLogout}>
+                                        Logout
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => navigate('/login')}
+                                    >
+                                        Login
+                                    </Button>
+                                    <Link to="/signup">
+                                        <Button>Sign Up</Button>
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                     <p className="text-xl text-center mb-8">{animatedText}</p>
                     <form
                         className="flex flex-col items-center gap-4 mb-8"
@@ -175,173 +212,7 @@ export default function MainPage() {
                         </button>
                     </form>
 
-                    {companyData && (
-                        <Card className="mb-8">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-4">
-                                    <IfRender data={companyData.logo}>
-                                        {(logo) => (
-                                            <img
-                                                src={logo}
-                                                alt={`${companyData.name} logo`}
-                                                width={45}
-                                                height={45}
-                                                className="rounded-full"
-                                            />
-                                        )}
-                                    </IfRender>
-                                    <span>{companyData.name}</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="mb-4">
-                                    {companyData.description}
-                                </p>
-                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                    <IfRender data={companyData.website}>
-                                        {(website) => (
-                                            <div>
-                                                <strong>Website:</strong>{' '}
-                                                <a
-                                                    href={website}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-600 hover:underline"
-                                                >
-                                                    {website}
-                                                </a>
-                                            </div>
-                                        )}
-                                    </IfRender>
-                                    <IfRender data={companyData.location}>
-                                        {(location) => (
-                                            <div>
-                                                <strong>Location:</strong>{' '}
-                                                {`${location.city}, ${location.region}, ${location.country}`}
-                                            </div>
-                                        )}
-                                    </IfRender>
-                                    <IfRender data={companyData.num_employees}>
-                                        {(num_employees) => (
-                                            <div>
-                                                <strong>Employees:</strong>{' '}
-                                                {num_employees}
-                                            </div>
-                                        )}
-                                    </IfRender>
-                                    <IfRender data={companyData.founded_on}>
-                                        {(founded) => (
-                                            <div>
-                                                <strong>Founded:</strong>{' '}
-                                                {new Date(
-                                                    founded.value,
-                                                ).toLocaleDateString()}
-                                            </div>
-                                        )}
-                                    </IfRender>
-                                    <IfRender data={companyData.company_type}>
-                                        {(company_type) => (
-                                            <div>
-                                                <strong>Company type:</strong>{' '}
-                                                {company_type}
-                                            </div>
-                                        )}
-                                    </IfRender>
-                                    <IfRender
-                                        data={companyData.crunchbase_rank}
-                                    >
-                                        {(crunchbase_rank) => (
-                                            <div>
-                                                <strong>
-                                                    Crunchbase rank:
-                                                </strong>{' '}
-                                                {crunchbase_rank}
-                                            </div>
-                                        )}
-                                    </IfRender>
-                                    <IfRender
-                                        data={companyData.semrush_global_rank}
-                                    >
-                                        {(semrush_global_rank) => (
-                                            <div>
-                                                <strong>
-                                                    Semrush global rank:
-                                                </strong>{' '}
-                                                {semrush_global_rank}
-                                            </div>
-                                        )}
-                                    </IfRender>
-                                    <IfRender
-                                        data={
-                                            companyData.semrush_visits_latest_month
-                                        }
-                                    >
-                                        {(semrush_visits_latest_month) => (
-                                            <div>
-                                                <strong>
-                                                    Semrush visits last month:
-                                                </strong>{' '}
-                                                {semrush_visits_latest_month}
-                                            </div>
-                                        )}
-                                    </IfRender>
-                                </div>
-                                <h3 className="text-xl font-semibold mb-2">
-                                    AI Summary
-                                </h3>
-                                <p className="mb-4">
-                                    {companyData.ai_short_summary}
-                                </p>
-                                {renderFAQSection(companyData.faqs)}
-                                <IfRender data={companyData.competitors}>
-                                    {(competitors) => (
-                                        <>
-                                            <h3 className="text-xl font-semibold mb-2">
-                                                Top Competitors
-                                            </h3>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                {competitors.map(
-                                                    (competitor, index) => (
-                                                        <Card key={index}>
-                                                            <CardHeader>
-                                                                <CardTitle className="flex items-center gap-2 text-lg">
-                                                                    <img
-                                                                        src={
-                                                                            competitor.logo
-                                                                        }
-                                                                        alt={`${competitor.name} logo`}
-                                                                        width={
-                                                                            30
-                                                                        }
-                                                                        height={
-                                                                            30
-                                                                        }
-                                                                        className="rounded-full"
-                                                                    />
-                                                                    <span>
-                                                                        {
-                                                                            competitor.name
-                                                                        }
-                                                                    </span>
-                                                                </CardTitle>
-                                                            </CardHeader>
-                                                            <CardContent>
-                                                                <p className="text-sm">
-                                                                    {
-                                                                        competitor.description
-                                                                    }
-                                                                </p>
-                                                            </CardContent>
-                                                        </Card>
-                                                    ),
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
-                                </IfRender>
-                            </CardContent>
-                        </Card>
-                    )}
+                    {companyData && <CompanyData companyData={companyData} />}
                 </div>
             </div>
         </ToastProvider>
